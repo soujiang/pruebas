@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.7;
 
+import "erc721a/contracts/ERC721A.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "contracts/access/Ownable.sol";
 
-contract TheStripesNFT is ERC721Enumerable, Ownable {
+contract PruebasNFT is ERC721A, Ownable {
     using Strings for uint256;
 
     string public baseURI;
@@ -22,7 +24,7 @@ contract TheStripesNFT is ERC721Enumerable, Ownable {
         string memory _name,
         string memory _symbol,
         string memory _initBaseURI
-    ) ERC721(_name, _symbol) {
+    ) ERC721A(_name, _symbol) {
         setBaseURI(_initBaseURI);
         mint(msg.sender, 20);
     }
@@ -33,29 +35,15 @@ contract TheStripesNFT is ERC721Enumerable, Ownable {
     }
 
     // public
-    function mint(address _to, uint256 _mintAmount) public payable {
-        uint256 supply = totalSupply();
-        require(!paused);
-        require(_mintAmount > 0);
-        require(_mintAmount <= maxMintAmount);
-        require(supply + _mintAmount <= maxSupply);
-
-        if (msg.sender != owner()) {
-            if (whitelisted[msg.sender] != true) {
-                if (presaleWallets[msg.sender] != true) {
-                    //general public
-                    require(msg.value >= cost * _mintAmount);
-                } else {
-                    //presale
-                    require(msg.value >= presaleCost * _mintAmount);
-                }
-            }
-        }
-
-        for (uint256 i = 1; i <= _mintAmount; i++) {
-            _safeMint(_to, supply + i);
-        }
-    }
+function mint(uint256 quantity_) external payable {
+    require(isPublicMintEnabled, "mint is not active");
+    require(totalSupply() + quantity_ < maxSupply, "exceeded max sup");
+    require(
+        _numberMinted(msg.sender) + quantity_ <= maxPerWallet,
+        "can not mint this many"
+    );
+    _safeMint(msg.sender, quantity_);
+}
 
     function walletOfOwner(address _owner)
         public
